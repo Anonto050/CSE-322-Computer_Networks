@@ -70,7 +70,9 @@ public class Helper extends Thread {
             System.out.println(clientID + " is uploading " + fileName + " of size " + fileSize);
 
             //check if buffer size is ok
-            if (!Server.confirmBufferSize(fileSize)) {
+            boolean confirm = Server.confirmBufferSize(fileSize);
+            out.writeObject(confirm);
+            if (!confirm) {
                 System.out.println("Buffer size exceeded");
                 return null;
             } else {
@@ -83,6 +85,7 @@ public class Helper extends Thread {
 
             current_file_name = "FileServer/" + clientID + "/" + type + "/" + fileName;
             int fileID = Server.addFile(current_file_name);
+            System.out.println("File ID: " + fileID);
             out.writeObject(fileID);
 
             //create file output stream
@@ -91,7 +94,7 @@ public class Helper extends Thread {
             BufferedOutputStream bufferOut = new BufferedOutputStream(fileOut);
             current_stream = fileOut;
 
-            String ack = null;
+            String ack = "";
             int count = 0;
             int bytesRead = 0;
             int totalBytesRead = 0;
@@ -189,10 +192,6 @@ public class Helper extends Thread {
                 clientID = (String) in.readObject();
                 System.out.println("Client ID: " + clientID);
 
-                //client login
-                String login = (String) in.readObject();
-                System.out.println("Login: " + login);
-
                 //check if client is already logged in
                 boolean check = Server.loginClient(clientID, clientAddress);
                 out.writeObject(check);
@@ -269,7 +268,7 @@ public class Helper extends Thread {
                             else if(filePath.startsWith("FileServer/" + clientID + "/public/") || filePath.startsWith("FileServer/" + clientID + "/private/")){
                              //file exists in client's directory
                                 System.out.println("File exists in client's directory");
-                                out.writeObject("File exists in your directory");
+                                out.writeObject("exists");
 
                                 //send file to client
                                 File file = new File(filePath);

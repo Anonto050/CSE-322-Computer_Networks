@@ -1,7 +1,10 @@
 import java.awt.*;
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Scanner;
+
+import static java.lang.Integer.parseInt;
 
 public class Client {
     private static Socket socket;
@@ -148,74 +151,222 @@ public class Client {
             ObjectOutputStream outputStream = new ObjectOutputStream(socket.getOutputStream());
             ObjectInputStream inputStream = new ObjectInputStream(socket.getInputStream());
 
-            //create client
-            while (true) {
-                System.out.println("Enter command: ");
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
-                String command = bufferedReader.readLine();
+            Scanner scanner = new Scanner(System.in);
 
-                //split command into array
-                String[] commandArray = command.split(" ");
+            while (true){
+                //login
+                System.out.println("Enter user ID");
+                String userID = scanner.nextLine();
+                outputStream.writeObject(userID);
 
-                //check command
-                if (commandArray[0].equalsIgnoreCase("login")) {
-                    //send command
-                    outputStream.writeObject(command);
-
-                    //receive acknowledgement
-                    String ack = (String) inputStream.readObject();
-                    System.out.println(ack);
-
-                    //if login successful, start client
-                    if (ack.equalsIgnoreCase("Login successful")) {
-                        System.out.println("Welcome " + commandArray[1]);
-                        while (true) {
-                            System.out.println("Enter command: ");
-                            command = bufferedReader.readLine();
-                            commandArray = command.split(" ");
-
-                            //check command
-                            if (commandArray[0].equalsIgnoreCase("upload")) {
-                                //send command
-                                outputStream.writeObject(command);
-
-                                //send file
-                                sendFile(outputStream, inputStream);
-                            } else if (commandArray[0].equalsIgnoreCase("download")) {
-                                //send command
-                                outputStream.writeObject(command);
-
-                                //receive file
-                                receiveFile(commandArray[1], outputStream, inputStream);
-                            } else if (commandArray[0].equalsIgnoreCase("logout")) {
-                                //send command
-                                outputStream.writeObject(command);
-
-                                //receive acknowledgement
-                                ack = (String) inputStream.readObject();
-                                System.out.println(ack);
-                                break;
-                            } else {
-                                System.out.println("Invalid command");
-                            }
-                        }
-                    }
-                } else if (commandArray[0].equalsIgnoreCase("exit")) {
-                    //send command
-                    outputStream.writeObject(command);
-
-                    //receive acknowledgement
-                    String ack = (String) inputStream.readObject();
-                    System.out.println(ack);
+                //check if already logged in
+                boolean loggedIn = (boolean) inputStream.readObject();
+                System.out.println("Logged in: " + loggedIn);
+                if(loggedIn){
+                    System.out.println("Login successful");
                     break;
-                } else {
-                    System.out.println("Invalid command");
                 }
+                System.out.println("User already logged in");
             }
 
-            //close socket
-            socket.close();
-    }
+            while (true) {
+                //show options menu
+                System.out.println("1. Lookup list of Clients");
+                System.out.println("2. Uploaded files");
+                System.out.println("3. Lookup public files of other clients");
+                System.out.println("4. File Request");
+                System.out.println("5. View unread messages");
+                System.out.println("6. Upload a file");
+                System.out.println("7. Logout");
 
+                //take input from user
+                String input = scanner.nextLine();
+                outputStream.writeObject(input);
+
+                //perform action based on input
+                if (input.equalsIgnoreCase("1")) {
+                    //lookup list of clients
+
+                    //receive list of clients who are online
+                    ArrayList<String> activeClients = (ArrayList<String>) inputStream.readObject();
+
+                    ArrayList<String> clients = (ArrayList<String>) inputStream.readObject();
+
+                    //print list of clients
+                    // among all clients print active clients with "active" tag
+                    System.out.println("List of clients:");
+                    for (String client : clients) {
+                        if (activeClients.contains(client)) {
+                            System.out.println(client + " (active)");
+                        } else {
+                            System.out.println(client);
+                        }
+                    }
+
+                } else if (input.equalsIgnoreCase("2")) {
+                    //want to see uploaded files - both public and private
+
+                    //receive list of files
+                    ArrayList<String> publicFiles = (ArrayList<String>) inputStream.readObject();
+
+                    //print list of files
+                    System.out.println("List of public files:");
+                    for (String file : publicFiles) {
+                        System.out.println(file);
+                    }
+
+                    ArrayList<String> privateFiles = (ArrayList<String>) inputStream.readObject();
+
+                    System.out.println("List of private files:");
+                    for (String file : privateFiles) {
+                        System.out.println(file);
+                    }
+
+                    //now download file if user wants to
+                    System.out.println("Do you want to download any file? (y/n)");
+                    String download = scanner.nextLine();
+                    if (download.equalsIgnoreCase("y")) {
+                        System.out.println("Enter file name");
+                        String fileName = scanner.nextLine();
+                        int fileID = parseInt(fileName);
+                        outputStream.writeObject(fileID);
+
+                        //check if file exists
+                        String fileExists = (String) inputStream.readObject();
+                        if (fileExists.equalsIgnoreCase("exists")) {
+
+                            fileName = (String) inputStream.readObject();
+                            System.out.println("File name: " + fileName);
+                            receiveFile(fileName, outputStream, inputStream);
+
+                        } else {
+                            System.out.println("File does not exist with the file name : "+fileName);
+                        }
+                    }
+
+                    else if (download.equalsIgnoreCase("n")) {
+                        continue;
+                    }
+
+                }
+                else if (input.equalsIgnoreCase("3")) {
+
+                    //Download public files of other clients
+                    System.out.println("Enter client ID");
+
+                    String clientID = scanner.nextLine();
+                    outputStream.writeObject(clientID);
+
+                    Object object = inputStream.readObject();
+
+                    //check if client exists. If not, server will send 0 otherwise 1
+                    if(object instanceof Integer){
+                        int clientExists = (int) object;
+                        if(clientExists == 0){
+                            System.out.println(clientID + " does not exist");
+                            continue;
+                        }
+                    }
+
+                    ArrayList<String> publicFiles = (ArrayList<String>) object;
+                    System.out.println("List of public files : ");
+                    for (String file : publicFiles) {
+                        System.out.println(file);
+                    }
+
+                    //now download file if user wants to
+                    System.out.println("Do you want to download any file? (y/n)");
+                    String download = scanner.nextLine();
+                    outputStream.writeObject(download);
+
+                    if(download.equalsIgnoreCase("y")){
+                        System.out.println("Enter file name");
+                        String fileName = scanner.nextLine();
+                        outputStream.writeObject(fileName);
+
+                        //check if file exists
+                        String fileExists = (String) inputStream.readObject();
+                        if (fileExists.equalsIgnoreCase("exists")) {
+
+                            System.out.println("File name: " + fileName);
+                            receiveFile(fileName, outputStream, inputStream);
+
+                        } else {
+                            System.out.println("File does not exist with the file name : "+fileName);
+                        }
+                    }
+
+                    else if (download.equalsIgnoreCase("n")) {
+                        continue;
+                    }
+                }
+
+                else if (input.equalsIgnoreCase("4")) {
+                    //file request
+                    System.out.println("Enter destination of your file request");
+                    String destination = scanner.nextLine();
+                    outputStream.writeObject(destination);
+
+                } else if (input.equalsIgnoreCase("5")) {
+                    //view unread messages
+                    System.out.println("Unread messages or requests : ");
+
+                    ArrayList<String> other_requests = (ArrayList<String>) inputStream.readObject();
+                    for (String request : other_requests) {
+                        System.out.println("Request ID : " + request);
+                    }
+
+                    System.out.println("Uploads for own requests : ");
+                    ArrayList<String> own_requests = (ArrayList<String>) inputStream.readObject();
+                    for (String request : own_requests) {
+                        System.out.println("Request ID : " + request);
+                    }
+                }
+                else if(input.equalsIgnoreCase("6")){
+                     //upload file
+                    //ask type of file
+                    System.out.println("1. Public");
+                    System.out.println("2. Private");
+                    System.out.println("3. Respond to file request");
+                    String type = scanner.nextLine();
+                    outputStream.writeObject(type);
+
+                    if(type.equalsIgnoreCase("3")){
+                        //respond to file request
+                        //enter request id
+                        System.out.println("Enter request ID");
+                        int requestID = parseInt(scanner.nextLine());
+                        outputStream.writeObject(requestID);
+
+                        //check if request is valid
+                        boolean validRequest = (boolean) inputStream.readObject();
+                        if(validRequest){
+                            //send file
+                            sendFile(outputStream, inputStream);
+                        }
+                        else{
+                            System.out.println("Invalid request. No such request exists");
+                            continue;
+                        }
+                    }
+                    else{
+                        //upload file
+                        sendFile(outputStream, inputStream);
+                    }
+                }
+                else if(input.equalsIgnoreCase("7")){
+                    inputStream.close();
+                    outputStream.close();
+                    socket.close();
+                    System.out.println("Logged out");
+                    System.exit(0);
+                }
+                else{
+                    System.out.println("Invalid input");
+                }
+
+                }
+            }
 }
+
 
