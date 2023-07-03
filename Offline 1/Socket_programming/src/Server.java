@@ -7,7 +7,7 @@ import java.util.HashMap;
 
 public class Server {
     private static int requestID;
-    private static ArrayList<Request> requests;
+    private static ArrayList<Request> requests = new ArrayList<Request>();
     private static int fileID;
     private static HashMap<Integer, String> files;
     private static HashMap<String, SocketAddress> Clients;
@@ -53,6 +53,7 @@ public class Server {
     //add request
 
     public static void addRequest(String requestDescription, String requester) {
+        //System.out.println("Request added: " + requestDescription);
         requests.add(new Request(requestID, requestDescription, requester));
         requestID++;
     }
@@ -125,7 +126,7 @@ public class Server {
         System.out.println(username + " logged in with address " + address);
 
         //create folder for client
-        String url = "FileServer/" + username + "/";
+        String url = "FTP_Server/" + username + "/";
         File folder = new File(url);
         if (!folder.exists()) {
             folder.mkdir();
@@ -158,7 +159,7 @@ public class Server {
     //get all paths from folders that have been created
     public static ArrayList<String> getAllPaths() {
         ArrayList<String> allPaths = new ArrayList<String>();
-        File folder = new File("FileServer/");
+        File folder = new File("FTP_Server/");
         File[] listOfFiles = folder.listFiles();
         for (File file : listOfFiles) {
             if (file.isDirectory()) {
@@ -172,10 +173,10 @@ public class Server {
     public static void main(String[] args) throws Exception {
 
         //create file server folder
-        File folder = new File("FileServer/");
+        File folder = new File("FTP_Server/");
         if (!folder.exists()) {
             folder.mkdir();
-            System.out.println("Created FileServer folder");
+            System.out.println("Created FTP_Server folder");
         }
 
         //create server socket

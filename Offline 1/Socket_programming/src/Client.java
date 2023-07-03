@@ -1,6 +1,7 @@
 import java.awt.*;
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
@@ -51,7 +52,7 @@ public class Client {
             fileOutputStream.close();
 
             System.out.println(ack);
-            if(ack.equalsIgnoreCase("complete")){
+            if(ack.equalsIgnoreCase("completed")){
                 System.out.println("Download complete: " + fileName + " (" + totalByteCount + " bytes)");
             }
             else{
@@ -87,7 +88,7 @@ public class Client {
 
             //check if file size is greater than buffer size and if buffer is available
             boolean bufferAvailable = (boolean) inputStream.readObject();
-            if(!bufferAvailable){
+            if(!bufferAvailable) {
                 System.out.println("Buffer full");
                 return;
             }
@@ -103,7 +104,7 @@ public class Client {
             byte[] buffer = new byte[chunkSize];
             int length = 0;
             int totalCount = 0;
-            socket.setSoTimeout(10000);
+            socket.setSoTimeout(30000);
 
             //send file
             while ((length = fileInputStream.read(buffer)) != -1) {
@@ -136,7 +137,17 @@ public class Client {
                 System.out.println("Upload failed");
             }
 
-        } catch (Exception e) {
+        }
+        catch (SocketTimeoutException se){
+            System.out.println(se);
+            try{
+                outputStream.writeObject("Timeout");
+            }
+            catch (IOException e){
+                System.out.println(e);
+            }
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -165,6 +176,7 @@ public class Client {
                 if(loggedIn){
                     System.out.println("Login successful");
                     break;
+
                 }
                 System.out.println("User already logged in");
             }
@@ -216,6 +228,7 @@ public class Client {
                     }
 
                     ArrayList<String> privateFiles = (ArrayList<String>) inputStream.readObject();
+                    //System.out.println(privateFiles);
 
                     System.out.println("List of private files:");
                     for (String file : privateFiles) {
@@ -225,22 +238,24 @@ public class Client {
                     //now download file if user wants to
                     System.out.println("Do you want to download any file? (y/n)");
                     String download = scanner.nextLine();
+                    outputStream.writeObject(download);
+
                     if (download.equalsIgnoreCase("y")) {
-                        System.out.println("Enter file name");
-                        String fileName = scanner.nextLine();
-                        int fileID = parseInt(fileName);
+                        System.out.println("Enter file ID : ");
+                        String file_id = scanner.nextLine();
+                        int fileID = parseInt(file_id);
                         outputStream.writeObject(fileID);
 
                         //check if file exists
                         String fileExists = (String) inputStream.readObject();
                         if (fileExists.equalsIgnoreCase("exists")) {
 
-                            fileName = (String) inputStream.readObject();
+                            String fileName = (String) inputStream.readObject();
                             System.out.println("File name: " + fileName);
                             receiveFile(fileName, outputStream, inputStream);
 
                         } else {
-                            System.out.println("File does not exist with the file name : "+fileName);
+                            System.out.println("File does not exist with the file name");
                         }
                     }
 
@@ -258,52 +273,55 @@ public class Client {
                     outputStream.writeObject(clientID);
 
                     Object object = inputStream.readObject();
+                    Integer clientExists = 0;
 
                     //check if client exists. If not, server will send 0 otherwise 1
-                    if(object instanceof Integer){
-                        int clientExists = (int) object;
+                    if(object.getClass().equals(clientExists.getClass())){
+                        //System.out.println(object);
+                        clientExists = (Integer) object;
+                        //System.out.println(clientExists);
                         if(clientExists == 0){
                             System.out.println(clientID + " does not exist");
                             continue;
                         }
                     }
 
-                    ArrayList<String> publicFiles = (ArrayList<String>) object;
-                    System.out.println("List of public files : ");
-                    for (String file : publicFiles) {
-                        System.out.println(file);
-                    }
-
-                    //now download file if user wants to
-                    System.out.println("Do you want to download any file? (y/n)");
-                    String download = scanner.nextLine();
-                    outputStream.writeObject(download);
-
-                    if(download.equalsIgnoreCase("y")){
-                        System.out.println("Enter file name");
-                        String fileName = scanner.nextLine();
-                        outputStream.writeObject(fileName);
-
-                        //check if file exists
-                        String fileExists = (String) inputStream.readObject();
-                        if (fileExists.equalsIgnoreCase("exists")) {
-
-                            System.out.println("File name: " + fileName);
-                            receiveFile(fileName, outputStream, inputStream);
-
-                        } else {
-                            System.out.println("File does not exist with the file name : "+fileName);
+                        ArrayList<String> publicFiles = (ArrayList<String>) inputStream.readObject();
+                        System.out.println("List of public files : ");
+                        for (String file : publicFiles) {
+                            System.out.println(file);
                         }
-                    }
 
-                    else if (download.equalsIgnoreCase("n")) {
-                        continue;
-                    }
+                        //now download file if user wants to
+                        System.out.println("Do you want to download any file? (y/n)");
+                        String download = scanner.nextLine();
+                        outputStream.writeObject(download);
+
+                        if (download.equalsIgnoreCase("y")) {
+                            System.out.println("Enter file name");
+                            String fileName = scanner.nextLine();
+                            outputStream.writeObject(fileName);
+
+                            //check if file exists
+                            String fileExists = (String) inputStream.readObject();
+                            //System.out.println(fileExists);
+                            if (fileExists.equalsIgnoreCase("exists")) {
+
+                                System.out.println("File name: " + fileName);
+                                receiveFile(fileName, outputStream, inputStream);
+
+                            } else {
+                                System.out.println("File does not exist with the file name : " + fileName);
+                            }
+                        } else if (download.equalsIgnoreCase("n")) {
+                            continue;
+                        }
+
                 }
 
                 else if (input.equalsIgnoreCase("4")) {
                     //file request
-                    System.out.println("Enter destination of your file request");
+                    System.out.println("Enter description of your file request");
                     String destination = scanner.nextLine();
                     outputStream.writeObject(destination);
 

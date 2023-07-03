@@ -1,7 +1,9 @@
+
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.awt.*;
 
 public class Helper extends Thread {
 
@@ -52,11 +54,12 @@ public class Helper extends Thread {
 
             }
             System.out.println("Chunks sent: " + count);
+            out.writeObject("completed");
             //close file input stream
             fileIn.close();
         }
         catch (Exception e) {
-            e.printStackTrace();
+            System.out.println(e);
         }
     }
 
@@ -83,7 +86,7 @@ public class Helper extends Thread {
             int chunkSize = Server.getRandomChunkSize();
             out.writeObject(chunkSize);
 
-            current_file_name = "FileServer/" + clientID + "/" + type + "/" + fileName;
+            current_file_name = "FTP_Server/" + clientID + "/" + type + "/" + fileName;
             int fileID = Server.addFile(current_file_name);
             System.out.println("File ID: " + fileID);
             out.writeObject(fileID);
@@ -111,6 +114,7 @@ public class Helper extends Thread {
                 //check if both class of objects are same
                 if (obj.getClass().equals(ack.getClass())) {
                     ack = (String) obj;
+                    System.out.println("Received ack: " + ack);
                     finished = true;
                     break;
 
@@ -123,12 +127,13 @@ public class Helper extends Thread {
                     count++;
 
                 System.out.println("Chunks received: " + count);
+                //Thread.sleep(35000);
                 out.writeObject("Total bytes read: " + totalBytesRead);
             }
 
-            fileOut.flush();
-            fileOut.close();
+            bufferOut.flush();
             bufferOut.close();
+            fileOut.close();
 
             if(finished == false){
                 ack = (String) in.readObject();
@@ -137,7 +142,7 @@ public class Helper extends Thread {
             System.out.println(ack);
 
             //if ack is COMPLETE, then check two cases - SUCCESS or FAILURE
-            if (ack.equals("COMPLETE")) {
+            if (ack.equalsIgnoreCase("COMPLETED")) {
                 Server.clearBufferSize(totalBytesRead);
                 if(totalBytesRead == fileSize){
                     System.out.println("File received successfully");
@@ -158,7 +163,7 @@ public class Helper extends Thread {
                     }
                 }
             }
-            if(ack.equals("TIMEOUT")){
+            if(ack.equalsIgnoreCase("TIMEOUT")){
                 System.out.println("File transfer timed out");
 
                 //delete file
@@ -176,7 +181,8 @@ public class Helper extends Thread {
             return fileName;
         }
         catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("Error in receiving file");
+            System.out.println(e);
             return null;
         }
     }
@@ -203,8 +209,9 @@ public class Helper extends Thread {
 
                 //read client request
                 while (true){
-                    String choice = (String) in.readObject();
-                    System.out.println("Choice: " + choice);
+                    System.out.println("Waiting for client request");
+                        String choice = (String) in.readObject();
+                        System.out.println("Choice: " + choice);
 
                     if (choice.equalsIgnoreCase("1")){
                         //Look up for users
@@ -225,7 +232,7 @@ public class Helper extends Thread {
                         System.out.println(clientID + " is looking up for files");
                         //get all public files
                         ArrayList<String> publicFiles = new ArrayList<String>();
-                        String publicPath = "FileServer/" + clientID + "/public/";
+                        String publicPath = "FTP_Server/" + clientID + "/public/";
                         File[] files = new File(publicPath).listFiles();
                         for (File file : files) {
                             if (file.isFile()) {
@@ -238,7 +245,7 @@ public class Helper extends Thread {
 
                         //get all private files
                         ArrayList<String> privateFiles = new ArrayList<String>();
-                        String privatePath = "FileServer/" + clientID + "/private/";
+                        String privatePath = "FTP_Server/" + clientID + "/private/";
                         files = new File(privatePath).listFiles();
                         for (File file : files) {
                             if (file.isFile()) {
@@ -247,12 +254,16 @@ public class Helper extends Thread {
                             }
                         }
                         //send private files to client
+
                         out.writeObject(privateFiles);
 
 
                         //download file if download is requested
+
                         String downloadOption = (String) in.readObject();
-                        if(downloadOption.equalsIgnoreCase("1")){
+                        //System.out.println("Download option: " + downloadOption);
+
+                        if(downloadOption.equalsIgnoreCase("y")){
                             //download files
                             int fileID = (int) in.readObject();
                             System.out.println("File ID: " + fileID);
@@ -265,7 +276,7 @@ public class Helper extends Thread {
                                 out.writeObject("No such file exists in your directory");
                                 continue;
                             }
-                            else if(filePath.startsWith("FileServer/" + clientID + "/public/") || filePath.startsWith("FileServer/" + clientID + "/private/")){
+                            else if(filePath.startsWith("FTP_Server/" + clientID + "/public/") || filePath.startsWith("FTP_Server/" + clientID + "/private/")){
                              //file exists in client's directory
                                 System.out.println("File exists in client's directory");
                                 out.writeObject("exists");
@@ -284,7 +295,7 @@ public class Helper extends Thread {
                                 continue;
                             }
                         }
-                        else if(downloadOption.equalsIgnoreCase("2")){
+                        else if(downloadOption.equalsIgnoreCase("n")){
                             continue;
                         }
 
@@ -318,11 +329,11 @@ public class Helper extends Thread {
                             System.out.println("User exists");
                             System.out.println(clientID + " is looking up for public files of " + user);
 
-                            //out.writeObject(userExists);
+                            out.writeObject(userExists);
 
                             //get all public files of the user
                             ArrayList<String> publicFiles = new ArrayList<String>();
-                            String publicPath = "FileServer/" + user + "/public/";
+                            String publicPath = "FTP_Server/" + user + "/public/";
                             File[] files = new File(publicPath).listFiles();
                             for (File file : files) {
                                 if (file.isFile()) {
@@ -336,7 +347,10 @@ public class Helper extends Thread {
                             //download file if download is requested
                             //1. yes 2. no
                             String downloadOption = (String) in.readObject();
-                            if(downloadOption.equalsIgnoreCase("1")){
+                            //System.out.println("Download option: " + downloadOption);
+
+
+                            if(downloadOption.equalsIgnoreCase("y")){
                                 //download files
                                 String fileName = (String) in.readObject();
                                 System.out.println("File Name: " + fileName);
@@ -345,7 +359,7 @@ public class Helper extends Thread {
                                 if(file.exists()){
                                     //file exists
                                     System.out.println("File exists");
-                                    out.writeObject("File exists");
+                                    out.writeObject("exists");
 
                                     //send file to client
                                     //out.writeObject(fileName);
@@ -354,12 +368,12 @@ public class Helper extends Thread {
                                 else{
                                     //file does not exist
                                     System.out.println("File does not exist");
-                                    out.writeObject("File does not exist");
+                                    out.writeObject("does not exist");
                                     continue;
                                 }
 
                             }
-                            else if(downloadOption.equalsIgnoreCase("2")){
+                            else if(downloadOption.equalsIgnoreCase("n")){
                                 continue;
                             }
                         }
@@ -377,8 +391,39 @@ public class Helper extends Thread {
                         System.out.println(clientID + " is viewing all unread messages");
                         ArrayList<Request> unreadMessages = Server.getRequests();
                         ArrayList<String> self_message = new ArrayList<String>();
+                        //self_message.add("You have unread messages");
                         ArrayList<String> other_message = new ArrayList<String>();
-                        for(Request r : unreadMessages){
+                        //other_message.add("You have unread messages");
+
+                        //request list is updating during the loop.
+
+//                        for(Request r : unreadMessages){
+//                            if(r.getRequester().equalsIgnoreCase(clientID)){
+//                                //self message
+//                                //get upload info of self
+//                                ArrayList<uploadInfo> uploadInfos = r.getUploads();
+//                                if(uploadInfos.size() == 0){
+//                                    //no uploads
+//                                    System.out.println("No uploads");
+//                                    continue;
+//                                }
+//
+//                                    //get all uploads
+//                                    for(uploadInfo u : uploadInfos){
+//                                        String message = r.getRequestID() + " : " + u.getUploaderId() + " uploaded " + u.getUploadUrl();
+//                                        self_message.add(message);
+//                                        System.out.println(message);
+//                                    }
+//                                    Server.removeRequest(r.getRequestID());
+//
+//                            }
+//                            else{
+//                                //other message
+//                                other_message.add(r.getRequestID() + " : " + r.getRequester() + " requested for " + r.getRequestDescription());
+//                            }
+//                        }
+                        for (int i = 0; i < unreadMessages.size(); i++) {
+                            Request r = unreadMessages.get(i);
                             if(r.getRequester().equalsIgnoreCase(clientID)){
                                 //self message
                                 //get upload info of self
@@ -388,24 +433,26 @@ public class Helper extends Thread {
                                     System.out.println("No uploads");
                                     continue;
                                 }
-                                else{
-                                    //get all uploads
-                                    for(uploadInfo u : uploadInfos){
-                                        String message = r.getRequestID() + " : " + u.getUploaderId() + " uploaded " + u.getUploadUrl();
-                                        self_message.add(message);
-                                    }
-                                    Server.removeRequest(r.getRequestID());
+
+                                //get all uploads
+                                for(uploadInfo u : uploadInfos){
+                                    String message = r.getRequestID() + " : " + u.getUploaderId() + " uploaded " + u.getUploadUrl();
+                                    self_message.add(message);
+                                    //System.out.println(message);
                                 }
+                                Server.removeRequest(r.getRequestID());
+
                             }
                             else{
                                 //other message
                                 other_message.add(r.getRequestID() + " : " + r.getRequester() + " requested for " + r.getRequestDescription());
                             }
                         }
-                        //send self messages
-                        out.writeObject(self_message);
                         //send other messages
                         out.writeObject(other_message);
+                        //send self messages
+                        out.writeObject(self_message);
+
                     }
                     else if(choice.equalsIgnoreCase("6")){
                          //receive the uploaded file by client
@@ -430,8 +477,9 @@ public class Helper extends Thread {
                         }
                         String fileName = receive_file(fileType, in, out);
                         System.out.println("File Name: " + fileName);
+                        System.out.println("File Type: " + fileType);
                         //add file to the server
-                        Server.addUpload(requestID, clientID, "FileServer/" + clientID + "/" + fileType + "/" + fileName);
+                        Server.addUpload(requestID, clientID, "FTP_Server/" + clientID + "/" + fileType + "/" + fileName);
                     }
                     else if(choice.equalsIgnoreCase("7")){
                           in.close();
@@ -467,6 +515,7 @@ public class Helper extends Thread {
                 }
                 current_file_name = null;
             }
+            System.out.println(e);
             System.out.println(clientID + " disconnected");
             Server.logoutClient(clientID);
         }
