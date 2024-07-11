@@ -7,13 +7,13 @@ For a detailed overview of the course, refer to the [course outline](https://git
 
 ## Assignments
 
-### Offline-1 | File Server System
+### Offline-1 : File Server System
 **Topics:** `socket programming`, `TCP`
 
 - **[Problem Specification](https://github.com/Anonto050/CSE-322-Computer_Networks/blob/main/Offline1/Problem_Statement.pdf)**
 - **[Solution](https://github.com/Anonto050/CSE-322-Computer_Networks/tree/main/Offline1)**
 
-### Offline-2 | Simulating Static and Mobile Dumbbell Topology
+### Offline-2 : Simulating Static and Mobile Dumbbell Topology
 **Topics:** `ns3`
 
 - **[Problem Specification](https://github.com/Anonto050/CSE-322-Computer_Networks/blob/main/Offline2/Problem_Statement.pdf)**
@@ -39,7 +39,7 @@ For a detailed overview of the course, refer to the [course outline](https://git
         ```
     4. A `wireless-mobile-dumbbell-metrics` folder will be generated with the simulation metrics and graphs.
 
-### Offline-3 | Simulating Congestion Control Algorithms
+### Offline-3 : Simulating Congestion Control Algorithms
 **Topics:** `ns3`, `TCP Adaptive-Reno`
 
 - **[Problem Specification](https://github.com/Anonto050/CSE-322-Computer_Networks/blob/main/Offline3/Problem_Statement.pdf)**
@@ -55,7 +55,7 @@ For a detailed overview of the course, refer to the [course outline](https://git
         ```
     5. Metrics and graphs will be stored in the `congestion-control-metrics` folder.
 
-### Offline-4 | Error Detection and Correction
+### Offline-4 : Error Detection and Correction
 **Topics:** `Data Link Layer`, `Hamming Code`, `CRC`
 
 - **[Problem Specification](https://github.com/Anonto050/CSE-322-Computer_Networks/blob/main/Offline4/Problem_Statement.docx)**
